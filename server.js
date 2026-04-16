@@ -1,6 +1,5 @@
 // stream-credits-server
 // Standalone Express server for stream credits data
-// Deploy as a NEW Render web service
 
 const express = require('express');
 const app = express();
@@ -9,17 +8,18 @@ app.use(express.json());
 // ── ENV VARS (add these in Render → Environment) ──────────────
 // TWITCH_CLIENT_ID
 // TWITCH_CLIENT_SECRET
-// TWITCH_BROADCASTER_ID       (your numeric Twitch user ID)
-// TWITCH_ACCESS_TOKEN         (needs: channel:read:subscriptions + moderation:read)
-// SE_JWT_TOKEN                (StreamElements → Account → Integrations → JWT Token)
+// TWITCH_BROADCASTER_ID       (your numeric Twitch user ID: 1351361103)
+// TWITCH_ACCESS_TOKEN         (needs: channel:read:subscriptions)
+// SE_JWT_TOKEN                (StreamElements → Account → Channels → JWT Token)
 // SE_CHANNEL_ID               (StreamElements channel ID)
-// YOUTUBE_ACCESS_TOKEN        (OAuth token — see setup guide below)
+// YOUTUBE_ACCESS_TOKEN        (OAuth token — see setup guide)
 // PORT                        (Render sets this automatically)
 // ─────────────────────────────────────────────────────────────
 
 // ── IN-MEMORY STORE FOR LIVE YOUTUBE CHAT EVENTS ─────────────
 let youtubeSuperchats = [];
 let youtubeSuperStickers = [];
+let youtubeMods = [];
 let youtubeLiveChatId = null;
 let youtubePollingInterval = null;
 
@@ -41,26 +41,6 @@ async function getTwitchSubscribers() {
       .map(s => s.user_name.toUpperCase());
   } catch (e) {
     console.error('Twitch subs error:', e.message);
-    return [];
-  }
-}
-
-// ── TWITCH: GET MODS ──────────────────────────────────────────
-async function getTwitchMods() {
-  try {
-    const res = await fetch(
-      `https://api.twitch.tv/helix/moderation/moderators?broadcaster_id=${process.env.TWITCH_BROADCASTER_ID}&first=100`,
-      {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${process.env.TWITCH_ACCESS_TOKEN}`
-        }
-      }
-    );
-    const data = await res.json();
-    return (data.data || []).map(m => m.user_name.toUpperCase());
-  } catch (e) {
-    console.error('Twitch mods error:', e.message);
     return [];
   }
 }
@@ -106,6 +86,7 @@ async function getYouTubeMembers() {
 }
 
 // ── YOUTUBE: POLL LIVE CHAT ───────────────────────────────────
+// Logs superchats, super stickers, AND mods during the stream
 async function pollYouTubeLiveChat(liveChatId) {
   try {
     const res = await fetch(
@@ -118,23 +99,26 @@ async function pollYouTubeLiveChat(liveChatId) {
     for (const item of (data.items || [])) {
       const type = item.snippet.type;
       const name = (item.authorDetails.displayName || '').toUpperCase();
+      const isMod = item.authorDetails.isChatModerator;
+
       if (type === 'superChatEvent' && !youtubeSuperchats.includes(name)) {
         youtubeSuperchats.push(name);
       }
       if (type === 'superStickerEvent' && !youtubeSuperStickers.includes(name)) {
         youtubeSuperStickers.push(name);
       }
+      if (isMod && !youtubeMods.includes(name)) {
+        youtubeMods.push(name);
+      }
     }
-    console.log(`Polled chat — superchats: ${youtubeSuperchats.length}, stickers: ${youtubeSuperStickers.length}`);
+    console.log(`Polled chat — superchats: ${youtubeSuperchats.length}, stickers: ${youtubeSuperStickers.length}, mods: ${youtubeMods.length}`);
   } catch (e) {
     console.error('YouTube chat poll error:', e.message);
   }
 }
 
-// ── ROUTE: Start stream (begin YouTube chat polling) ─────────
-// POST /api/start-stream
-// Body: { "liveBroadcastId": "your-youtube-broadcast-id" }
-// Call this when you go live on YouTube
+// ── ROUTE: Start stream ───────────────────────────────────────
+// POST /api/start-stream  { "liveBroadcastId": "your-youtube-broadcast-id" }
 app.post('/api/start-stream', async (req, res) => {
   const { liveBroadcastId } = req.body;
   if (!liveBroadcastId) {
@@ -148,11 +132,12 @@ app.post('/api/start-stream', async (req, res) => {
     const broadcastData = await broadcastRes.json();
     youtubeLiveChatId = broadcastData.items?.[0]?.snippet?.liveChatId;
     if (!youtubeLiveChatId) {
-      return res.status(404).json({ error: 'Could not find liveChatId for that broadcast' });
+      return res.status(404).json({ error: 'Could not find liveChatId' });
     }
     // Reset for new stream
     youtubeSuperchats = [];
     youtubeSuperStickers = [];
+    youtubeMods = [];
     if (youtubePollingInterval) clearInterval(youtubePollingInterval);
     youtubePollingInterval = setInterval(() => pollYouTubeLiveChat(youtubeLiveChatId), 15000);
     console.log(`Stream started — polling liveChatId: ${youtubeLiveChatId}`);
@@ -163,7 +148,6 @@ app.post('/api/start-stream', async (req, res) => {
 });
 
 // ── ROUTE: Stop stream ────────────────────────────────────────
-// POST /api/stop-stream
 app.post('/api/stop-stream', (req, res) => {
   if (youtubePollingInterval) {
     clearInterval(youtubePollingInterval);
@@ -173,14 +157,12 @@ app.post('/api/stop-stream', (req, res) => {
   res.json({ ok: true });
 });
 
-// ── ROUTE: Main credits data endpoint ────────────────────────
+// ── ROUTE: Main credits endpoint ──────────────────────────────
 // GET /api/stream-credits
-// Called by stream-credits.html on GitHub Pages at load time
 app.get('/api/stream-credits', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  const [twitchSubscribers, mods, seSponsors, youtubeMembers] = await Promise.all([
+  const [twitchSubscribers, seSponsors, youtubeMembers] = await Promise.all([
     getTwitchSubscribers(),
-    getTwitchMods(),
     getSESponsors(),
     getYouTubeMembers()
   ]);
@@ -190,12 +172,12 @@ app.get('/api/stream-credits', async (req, res) => {
     youtubeSuperStickers: [...youtubeSuperStickers],
     seSponsors,
     twitchSubscribers,
-    mods,
+    mods: [...youtubeMods],   // YouTube mods only
     generatedAt: new Date().toISOString()
   });
 });
 
-// ── ROUTE: Health check ───────────────────────────────────────
+// ── Health check ──────────────────────────────────────────────
 app.get('/', (req, res) => res.json({ status: 'stream-credits-server running' }));
 
 const PORT = process.env.PORT || 3001;
