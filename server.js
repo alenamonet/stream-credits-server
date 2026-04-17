@@ -238,6 +238,11 @@ app.get('/api/stream-credits', async (req, res) => {
   });
 });
 
+// ── Serve credits page ────────────────────────────────────────
+app.get('/credits', (req, res) => {
+  res.sendFile(__dirname + '/stream-credits.html');
+});
+
 // ── Health check ──────────────────────────────────────────────
 app.get('/', (req, res) => res.json({ 
   status: 'stream-credits-server running',
