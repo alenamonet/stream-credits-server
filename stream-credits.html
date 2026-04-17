@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Stream Credits</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -10,7 +11,7 @@
     overflow: hidden;
     width: 1920px;
     height: 1080px;
-    font-family: 'Arial Black', Arial, sans-serif;
+    font-family: 'Poppins', Arial, sans-serif;
     text-align: center;
   }
   #credits-container {
@@ -47,19 +48,19 @@
   .username {
     font-size: 36px;
     font-weight: 700;
-    color: #ffffff;
+    color: #000000;
     margin: 18px 0;
     letter-spacing: 2px;
     text-transform: uppercase;
   }
-  .username.yt { color: #ffcccc; }
+  .username.yt { color: #000000; }
   .spacer { height: 40px; }
   #loading {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: #ffffff;
+    color: #000000;
     font-size: 28px;
     font-weight: 700;
   }
@@ -73,12 +74,10 @@
 </div>
 
 <script>
-// ── EDIT THIS ──────────────────────────────────────────────
 const RENDER_API = 'https://stream-credits-server.onrender.com/api/stream-credits';
-const SCROLL_SPEED_PER_NAME = 1.2; // seconds per name entry
+const SCROLL_SPEED_PER_NAME = 1.2;
 const SCROLL_MIN = 45;
 const SCROLL_MAX = 120;
-// ──────────────────────────────────────────────────────────
 
 function buildSection(header, names, isYT = false) {
   if (!names || names.length === 0) return '';
