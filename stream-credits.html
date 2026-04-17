@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stream Credits</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    overflow: hidden;
+    width: 1920px;
+    height: 1080px;
+    font-family: 'Arial Black', Arial, sans-serif;
+    text-align: center;
+  }
+  #credits-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  #credits-scroll {
+    position: absolute;
+    width: 100%;
+    padding-top: 1100px;
+  }
+  #credits-scroll.animate {
+    animation: scrollUp var(--duration) linear forwards;
+  }
+  @keyframes scrollUp {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(calc(-100% - 200px)); }
+  }
+  .cat-header {
+    font-size: 52px;
+    font-weight: 900;
+    color: #ff44cc;
+    letter-spacing: 3px;
+    margin: 60px 0 16px;
+    text-transform: uppercase;
+  }
+  .cat-header.gold {
+    color: #f5c518;
+    font-size: 60px;
+    margin-top: 80px;
+  }
+  .username {
+    font-size: 36px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 18px 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .username.yt { color: #ffcccc; }
+  .spacer { height: 40px; }
+  #loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">Loading credits...</div>
+<div id="credits-container">
+  <div id="credits-scroll"></div>
+</div>
+
+<script>
+// ── EDIT THIS ──────────────────────────────────────────────
+const RENDER_API = 'https://fitbitwidget-f35m.onrender.com/api/stream-credits';
+const SCROLL_SPEED_PER_NAME = 1.2; // seconds per name entry
+const SCROLL_MIN = 45;
+const SCROLL_MAX = 120;
+// ──────────────────────────────────────────────────────────
+
+function buildSection(header, names, isYT = false) {
+  if (!names || names.length === 0) return '';
+  return `
+    <div class="cat-header">${header}</div>
+    ${names.map(n => `<div class="username${isYT ? ' yt' : ''}">${n}</div>`).join('')}
+    <div class="spacer"></div>`;
+}
+
+async function loadCredits() {
+  try {
+    const res = await fetch(RENDER_API);
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+
+    const {
+      youtubeMembers = [],
+      youtubeSuperchats = [],
+      youtubeSuperStickers = [],
+      seSponsors = [],
+      twitchSubscribers = [],
+      mods = []
+    } = data;
+
+    const totalNames = youtubeMembers.length + youtubeSuperchats.length +
+      youtubeSuperStickers.length + seSponsors.length +
+      twitchSubscribers.length + mods.length;
+
+    const duration = Math.min(SCROLL_MAX, Math.max(SCROLL_MIN, totalNames * SCROLL_SPEED_PER_NAME));
+    document.documentElement.style.setProperty('--duration', `${duration}s`);
+
+    const html =
+      buildSection('⭐ YouTube Members', youtubeMembers, true) +
+      buildSection('💛 Super Chats', youtubeSuperchats, true) +
+      buildSection('✨ Super Stickers', youtubeSuperStickers, true) +
+      buildSection('🏆 StreamElements Sponsors', seSponsors) +
+      buildSection('🚂 Chooo Choo MF Conductors', twitchSubscribers) +
+      buildSection('⚔️ Mod Gods', mods) +
+      `<div class="spacer"></div><div class="spacer"></div>
+       <div class="cat-header gold">See You Around Chat...</div>
+       <div class="spacer"></div><div class="spacer"></div>`;
+
+    const scroll = document.getElementById('credits-scroll');
+    scroll.innerHTML = html;
+    setTimeout(() => scroll.classList.add('animate'), 800);
+
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Could not load credits — check server';
+    console.error(err);
+  }
+}
+
+loadCredits();
+</script>
+</body>
+</html>
