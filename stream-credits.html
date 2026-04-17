@@ -3,66 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <title>Stream Credits</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
     background: transparent;
     overflow: hidden;
     width: 1920px;
     height: 1080px;
-    font-family: 'Poppins', Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
     text-align: center;
+    color: #ffffff;
   }
+
   #credits-container {
     position: absolute;
     width: 100%;
     height: 100%;
     overflow: hidden;
   }
+
   #credits-scroll {
     position: absolute;
     width: 100%;
     padding-top: 1100px;
   }
+
   #credits-scroll.animate {
     animation: scrollUp var(--duration) linear forwards;
   }
+
   @keyframes scrollUp {
     0%   { transform: translateY(0); }
     100% { transform: translateY(calc(-100% - 200px)); }
   }
-  .cat-header {
-    font-size: 52px;
-    font-weight: 900;
-    color: #ff44cc;
-    letter-spacing: 3px;
-    margin: 60px 0 16px;
-    text-transform: uppercase;
-  }
-  .cat-header.gold {
-    color: #f5c518;
-    font-size: 60px;
-    margin-top: 80px;
-  }
-  .username {
-    font-size: 36px;
-    font-weight: 700;
-    color: #000000;
-    margin: 18px 0;
+
+  /* Opening thank you line */
+  .thank-you {
+    font-size: 42px;
+    font-weight: 400;
+    color: #ffffff;
     letter-spacing: 2px;
-    text-transform: uppercase;
+    margin: 0 0 12px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.9);
   }
-  .username.yt { color: #000000; }
-  .spacer { height: 40px; }
+
+  .subscriber-count {
+    font-size: 88px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -1px;
+    margin: 0 0 8px;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.7), 0 1px 6px rgba(0,0,0,0.9);
+    line-height: 1;
+  }
+
+  .subscriber-label {
+    font-size: 32px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 80px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  }
+
+  /* Section headers */
+  .cat-header {
+    font-size: 22px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin: 64px 0 24px;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+  }
+
+  /* Name grid — 4 columns */
+  .name-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 32px;
+    width: 1400px;
+    margin: 0 auto 16px;
+  }
+
+  .name-item {
+    font-size: 30px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.9);
+    padding: 4px 0;
+  }
+
+  /* Closing line */
+  .closing {
+    font-size: 52px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 3px;
+    margin: 80px 0 40px;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.7), 0 1px 6px rgba(0,0,0,0.9);
+  }
+
+  .divider {
+    width: 120px;
+    height: 2px;
+    background: rgba(255,255,255,0.3);
+    margin: 0 auto 0;
+  }
+
   #loading {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: #000000;
+    color: #ffffff;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 600;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
   }
 </style>
 </head>
@@ -70,21 +131,31 @@
 
 <div id="loading">Loading credits...</div>
 <div id="credits-container">
-  <div id="credits-scroll"></div>
+  <div id="credits-scroll" id="credits-scroll"></div>
 </div>
 
 <script>
 const RENDER_API = 'https://stream-credits-server.onrender.com/api/stream-credits';
-const SCROLL_SPEED_PER_NAME = 1.2;
-const SCROLL_MIN = 45;
-const SCROLL_MAX = 120;
+const SCROLL_SPEED_PER_NAME = 0.8;
+const SCROLL_MIN = 50;
+const SCROLL_MAX = 140;
 
-function buildSection(header, names, isYT = false) {
+function buildSection(header, names) {
   if (!names || names.length === 0) return '';
+  const nameItems = names.map(n =>
+    `<div class="name-item">${n}</div>`
+  ).join('');
   return `
+    <div class="divider"></div>
     <div class="cat-header">${header}</div>
-    ${names.map(n => `<div class="username${isYT ? ' yt' : ''}">${n}</div>`).join('')}
-    <div class="spacer"></div>`;
+    <div class="name-grid">${nameItems}</div>
+  `;
+}
+
+function formatNumber(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return n.toString();
 }
 
 async function loadCredits() {
@@ -99,30 +170,37 @@ async function loadCredits() {
       youtubeSuperStickers = [],
       seSponsors = [],
       twitchSubscribers = [],
-      mods = []
+      mods = [],
+      youtubeSubscriberCount = null
     } = data;
 
     const totalNames = youtubeMembers.length + youtubeSuperchats.length +
-      youtubeSuperStickers.length + seSponsors.length +
-      twitchSubscribers.length + mods.length;
+      youtubeSuperStickers.length + seSponsors.length + twitchSubscribers.length;
 
-    const duration = Math.min(SCROLL_MAX, Math.max(SCROLL_MIN, totalNames * SCROLL_SPEED_PER_NAME));
+    const duration = Math.min(SCROLL_MAX, Math.max(SCROLL_MIN, totalNames * SCROLL_SPEED_PER_NAME + 30));
     document.documentElement.style.setProperty('--duration', `${duration}s`);
 
-    const html =
-      buildSection('⭐ YouTube Members', youtubeMembers, true) +
-      buildSection('💛 Super Chats', youtubeSuperchats, true) +
-      buildSection('✨ Super Stickers', youtubeSuperStickers, true) +
-      buildSection('🏆 StreamElements Sponsors', seSponsors) +
-      buildSection('🚂 Chooo Choo MF Conductors', twitchSubscribers) +
-      buildSection('⚔️ Mod Gods', mods) +
-      `<div class="spacer"></div><div class="spacer"></div>
-       <div class="cat-header gold">See You Around Chat...</div>
-       <div class="spacer"></div><div class="spacer"></div>`;
+    const subCount = youtubeSubscriberCount ? formatNumber(youtubeSubscriberCount) : '';
+    const subLine = subCount
+      ? `<div class="subscriber-count">${subCount}</div>
+         <div class="subscriber-label">Subscribers</div>`
+      : '';
+
+    const html = `
+      <div class="thank-you">Thank you for watching with</div>
+      ${subLine}
+      ${buildSection("Today's Super Chats", youtubeSuperchats)}
+      ${buildSection("Today's Super Stickers", youtubeSuperStickers)}
+      ${buildSection("Today's Supporters", seSponsors)}
+      ${buildSection("YouTube Members", youtubeMembers)}
+      ${buildSection("Twitch Subscribers", twitchSubscribers)}
+      ${mods.length ? buildSection("Mod Gods", mods) : ''}
+      <div class="divider" style="margin-top:80px"></div>
+    `;
 
     const scroll = document.getElementById('credits-scroll');
     scroll.innerHTML = html;
-    setTimeout(() => scroll.classList.add('animate'), 800);
+    setTimeout(() => scroll.classList.add('animate'), 1000);
 
   } catch (err) {
     document.getElementById('loading').textContent = 'Could not load credits — check server';
